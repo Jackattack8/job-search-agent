@@ -1,13 +1,13 @@
 import { supabaseHeaders } from "../lib/supabase.js";
 
-// Marks a single job applied or not, keyed by its url. Upserts so it works
+// Marks a single job ignored or not, keyed by its url. Upserts so it works
 // whether or not the job is already stored. If Supabase is not configured it
 // returns ok without persisting, so the dashboard toggle still works in session.
 export default async function handler(req, res) {
   try {
     const body = req.body || {};
     const url = body.url;
-    const applied = body.applied !== false;
+    const ignored = body.ignored !== false;
     if (!url) {
       res.status(400).json({ error: "url is required" });
       return;
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         "content-type": "application/json",
         prefer: "resolution=merge-duplicates,return=minimal",
       }),
-      body: JSON.stringify([{ url, applied, seen_at: new Date().toISOString() }]),
+      body: JSON.stringify([{ url, ignored, seen_at: new Date().toISOString() }]),
     });
 
     if (!upsert.ok) {

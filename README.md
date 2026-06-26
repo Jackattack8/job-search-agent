@@ -14,6 +14,8 @@ api/score-jobs.js    Score a jobs array with Claude, return ranked
 api/cron.js          Daily orchestrator: fetch, score, store
 api/mark-applied.js  Mark a role applied or unapplied
 api/applied-urls.js  Return applied urls to hydrate the dashboard
+api/mark-ignored.js  Mark a role ignored or unignored
+api/ignored-urls.js  Return ignored urls to hydrate the dashboard
 lib/normalize.js     Source shapes to one schema, plus dedupe
 lib/score.js         Prompt, JSON extraction, scoring, ranking
 lib/anthropic.js     Anthropic Messages API caller
@@ -54,6 +56,7 @@ create table job_postings (
   honesty_flags jsonb,
   reasons text,
   applied boolean default false,
+  ignored boolean default false,
   seen_at timestamptz
 );
 ```

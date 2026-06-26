@@ -1,6 +1,6 @@
 import { supabaseHeaders } from "../lib/supabase.js";
 
-// Returns the urls already marked applied so the dashboard can hide them on
+// Returns the urls already marked ignored so the dashboard can hide them on
 // load. Returns an empty list when Supabase is not configured.
 export default async function handler(req, res) {
   try {
@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     }
 
     const result = await fetch(
-      base + "/rest/v1/job_postings?applied=eq.true&select=url",
+      base + "/rest/v1/job_postings?ignored=eq.true&select=url",
       { headers: supabaseHeaders(key) }
     );
     if (!result.ok) {
