@@ -26,11 +26,13 @@ const QUERIES = [
 
 const LOCATION = "Bentonville, AR";
 
-async function fetchJSearch(query) {
+async function fetchJSearch(query, remote) {
+  const q = remote ? query : query + " " + LOCATION;
   const url =
     "https://jsearch.p.rapidapi.com/search?query=" +
-    encodeURIComponent(query + " " + LOCATION) +
-    "&page=1&num_pages=1";
+    encodeURIComponent(q) +
+    "&page=1&num_pages=1" +
+    (remote ? "&remote_jobs_only=true" : "");
   const res = await fetch(url, {
     headers: {
       "x-rapidapi-key": process.env.JSEARCH_RAPIDAPI_KEY,
@@ -41,16 +43,17 @@ async function fetchJSearch(query) {
   return normalizeJSearch(await res.json());
 }
 
-async function fetchAdzuna(query) {
-  const url =
+async function fetchAdzuna(query, remote) {
+  // For remote, search nationwide (no where) and bias the keyword to remote.
+  const what = remote ? query + " remote" : query;
+  let url =
     "https://api.adzuna.com/v1/api/jobs/us/search/1?app_id=" +
     process.env.ADZUNA_APP_ID +
     "&app_key=" +
     process.env.ADZUNA_APP_KEY +
     "&results_per_page=25&what=" +
-    encodeURIComponent(query) +
-    "&where=" +
-    encodeURIComponent(LOCATION);
+    encodeURIComponent(what);
+  if (!remote) url += "&where=" + encodeURIComponent(LOCATION);
   const res = await fetch(url);
   if (!res.ok) return [];
   return normalizeAdzuna(await res.json());
@@ -69,8 +72,10 @@ async function fetchWorkday(entry, query) {
 export async function fetchAllJobs() {
   const tasks = [];
   for (const q of QUERIES) {
-    tasks.push(fetchJSearch(q));
-    tasks.push(fetchAdzuna(q));
+    tasks.push(fetchJSearch(q, false));
+    tasks.push(fetchJSearch(q, true));
+    tasks.push(fetchAdzuna(q, false));
+    tasks.push(fetchAdzuna(q, true));
     for (const entry of WORKDAY_WATCHLIST) tasks.push(fetchWorkday(entry, q));
   }
   const settled = await Promise.allSettled(tasks);
