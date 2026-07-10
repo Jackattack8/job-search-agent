@@ -4,6 +4,7 @@ import {
   normalizeWorkday,
   dedupe,
 } from "../lib/normalize.js";
+import { locationGate } from "../lib/filter.js";
 
 // Edit this list to the employers you want to watch directly on Workday.
 // Find base + tenant + site by opening a company career page and watching the
@@ -27,7 +28,9 @@ const QUERIES = [
 const LOCATION = "Bentonville, AR";
 
 async function fetchJSearch(query, remote) {
-  const q = remote ? query : query + " " + LOCATION;
+  // "in <location>" is JSearch's documented phrasing for constraining the
+  // search area; a bare appended city name is treated as loose keywords.
+  const q = remote ? query : query + " in " + LOCATION;
   const url =
     "https://jsearch.p.rapidapi.com/search?query=" +
     encodeURIComponent(q) +
@@ -80,13 +83,15 @@ export async function fetchAllJobs() {
   }
   const settled = await Promise.allSettled(tasks);
   const all = settled.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
-  return dedupe(all);
+  // Drop out of area postings here, before scoring, so they never cost tokens.
+  const { kept, dropped } = locationGate(dedupe(all));
+  return { jobs: kept, dropped };
 }
 
 export default async function handler(req, res) {
   try {
-    const jobs = await fetchAllJobs();
-    res.status(200).json({ count: jobs.length, jobs });
+    const { jobs, dropped } = await fetchAllJobs();
+    res.status(200).json({ count: jobs.length, dropped_out_of_area: dropped, jobs });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
